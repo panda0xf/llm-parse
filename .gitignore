@@ -23,7 +23,6 @@ env/
 *.swo
 
 # uv
-uv.lock
 
 # Testing
 .pytest_cache/
