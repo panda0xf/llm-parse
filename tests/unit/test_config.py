@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-import os
-
 import pytest
+from pydantic import ValidationError
 
 from llm_parse.config import LLMConfig, ServiceConfig, get_config, get_service_config
 
 
 class TestLLMConfig:
     def test_default_values(self) -> None:
-        cfg = LLMConfig(openai_api_key="test-key", _env_file=None)  # type: ignore[call-arg]
+        cfg = LLMConfig(openai_api_key="test-key", _env_file=None)
         assert cfg.openai_base_url == "https://api.openai.com/v1"
         assert cfg.model_name == "gpt-4o-mini"
         assert cfg.openai_api_key == "test-key"
@@ -30,7 +29,7 @@ class TestLLMConfig:
         monkeypatch.setenv("OPENAI_API_KEY", "env-key")
         monkeypatch.setenv("OPENAI_BASE_URL", "https://env.api.com/v1")
         monkeypatch.setenv("MODEL_NAME", "env-model")
-        cfg = LLMConfig(_env_file=None)  # type: ignore[call-arg]
+        cfg = LLMConfig(_env_file=None)
         assert cfg.openai_api_key == "env-key"
         assert cfg.openai_base_url == "https://env.api.com/v1"
         assert cfg.model_name == "env-model"
@@ -78,19 +77,19 @@ class TestServiceConfig:
         monkeypatch.setenv("PARSE_OUTPUT_RETRIES", "7")
         monkeypatch.setenv("PARSE_REQUEST_TIMEOUT", "45.0")
         monkeypatch.setenv("PARSE_BATCH_CHUNK_SIZE", "10")
-        cfg = ServiceConfig(_env_file=None)  # type: ignore[call-arg]
+        cfg = ServiceConfig(_env_file=None)
         assert cfg.output_retries == 7
         assert cfg.request_timeout == 45.0
         assert cfg.batch_chunk_size == 10
 
     def test_validation_constraints(self) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             ServiceConfig(output_retries=-1)
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             ServiceConfig(max_agent_concurrency=0)
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             ServiceConfig(request_timeout=0)
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             ServiceConfig(http_retry_min_wait=0)
 
 

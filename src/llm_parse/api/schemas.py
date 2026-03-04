@@ -12,9 +12,7 @@ class ParseRequestSchema(BaseModel):
 
     prompt: str = Field(description="用户输入文本")
     system_prompt: str = Field(default="", description="系统提示词")
-    output_schema: dict[str, Any] = Field(
-        description="期望输出的 JSON Schema，服务端据此动态创建 Pydantic Model"
-    )
+    output_schema: dict[str, Any] = Field(description="期望输出的 JSON Schema，服务端据此动态创建 Pydantic Model")
 
 
 class ParseResponseSchema(BaseModel):
@@ -38,9 +36,7 @@ class BatchRequestSchema(BaseModel):
     """批量解析请求。"""
 
     items: list[BatchItemSchema] = Field(description="子请求列表")
-    output_schema: dict[str, Any] = Field(
-        description="所有子请求共用的输出 JSON Schema"
-    )
+    output_schema: dict[str, Any] = Field(description="所有子请求共用的输出 JSON Schema")
 
 
 class BatchResponseSchema(BaseModel):

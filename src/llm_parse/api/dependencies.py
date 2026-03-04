@@ -12,4 +12,6 @@ if TYPE_CHECKING:
 
 def get_parse_service(request: Request) -> LLMParseService:
     """从应用 state 中获取 LLMParseService 实例。"""
-    return request.app.state.parse_service
+    from typing import cast
+
+    return cast("LLMParseService", request.app.state.parse_service)

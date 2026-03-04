@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-import asyncio
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -33,8 +33,10 @@ class SimpleOutput(BaseModel):
 @pytest.fixture
 def mock_service(service_config: ServiceConfig, llm_config: LLMConfig) -> LLMParseService:
     """创建带 mock 内部组件的 LLMParseService。"""
-    with patch.object(LLMParseService, "_create_rate_limit_client") as mock_client, \
-         patch.object(LLMParseService, "_create_model") as mock_model:
+    with (
+        patch.object(LLMParseService, "_create_rate_limit_client") as mock_client,
+        patch.object(LLMParseService, "_create_model") as mock_model,
+    ):
         mock_client.return_value = AsyncMock()
         mock_model.return_value = MagicMock()
         svc = LLMParseService(llm_config=llm_config, service_config=service_config)
@@ -62,7 +64,7 @@ class TestParse:
     @pytest.mark.asyncio
     async def test_parse_timeout(self, mock_service: LLMParseService) -> None:
         mock_agent = AsyncMock()
-        mock_agent.run = AsyncMock(side_effect=asyncio.TimeoutError())
+        mock_agent.run = AsyncMock(side_effect=TimeoutError())
 
         with patch.object(mock_service, "_get_or_create_agent", return_value=mock_agent):
             result = await mock_service.parse("test", SimpleOutput)
@@ -73,9 +75,7 @@ class TestParse:
     @pytest.mark.asyncio
     async def test_parse_validation_error(self, mock_service: LLMParseService) -> None:
         mock_agent = AsyncMock()
-        mock_agent.run = AsyncMock(
-            side_effect=UnexpectedModelBehavior("bad output")
-        )
+        mock_agent.run = AsyncMock(side_effect=UnexpectedModelBehavior("bad output"))
 
         with patch.object(mock_service, "_get_or_create_agent", return_value=mock_agent):
             result = await mock_service.parse("test", SimpleOutput)
@@ -156,10 +156,7 @@ class TestParseBatch:
         mock_agent.run = AsyncMock(return_value=mock_run_result)
 
         with patch.object(mock_service, "_get_or_create_agent", return_value=mock_agent):
-            requests = [
-                ParseRequest(prompt=f"q{i}", output_type=SimpleOutput)
-                for i in range(5)
-            ]
+            requests = [ParseRequest(prompt=f"q{i}", output_type=SimpleOutput) for i in range(5)]
             batch = await mock_service.parse_batch(requests)
 
         assert batch.total == 5
@@ -173,10 +170,11 @@ class TestParseBatch:
         """batch_chunk_size=3，5 个请求应分 2 批。"""
         call_count = 0
 
-        async def counting_parse(prompt: str, output_type: type, system_prompt: str = "") -> MagicMock:
+        async def counting_parse(prompt: str, output_type: type, system_prompt: str = "") -> Any:
             nonlocal call_count
             call_count += 1
             from llm_parse.models import ParseResult
+
             return ParseResult(
                 status=ParseStatus.SUCCESS,
                 output=SimpleOutput(answer="ok", score=5),
@@ -185,10 +183,7 @@ class TestParseBatch:
             )
 
         with patch.object(mock_service, "parse", side_effect=counting_parse):
-            requests = [
-                ParseRequest(prompt=f"q{i}", output_type=SimpleOutput)
-                for i in range(5)
-            ]
+            requests = [ParseRequest(prompt=f"q{i}", output_type=SimpleOutput) for i in range(5)]
             batch = await mock_service.parse_batch(requests)
 
         assert call_count == 5
@@ -204,9 +199,10 @@ class TestParseBatch:
         ]
         call_idx = 0
 
-        async def alternate_parse(prompt: str, output_type: type, system_prompt: str = "") -> MagicMock:
+        async def alternate_parse(prompt: str, output_type: type, system_prompt: str = "") -> Any:
             nonlocal call_idx
             from llm_parse.models import ParseResult
+
             idx = call_idx
             call_idx += 1
             if outputs[idx] is not None:
@@ -224,10 +220,7 @@ class TestParseBatch:
             )
 
         with patch.object(mock_service, "parse", side_effect=alternate_parse):
-            requests = [
-                ParseRequest(prompt=f"q{i}", output_type=SimpleOutput)
-                for i in range(3)
-            ]
+            requests = [ParseRequest(prompt=f"q{i}", output_type=SimpleOutput) for i in range(3)]
             batch = await mock_service.parse_batch(requests)
 
         assert batch.total == 3
@@ -252,22 +245,24 @@ class TestParseOrRaise:
     @pytest.mark.asyncio
     async def test_timeout_raises_llm_timeout(self, mock_service: LLMParseService) -> None:
         mock_agent = AsyncMock()
-        mock_agent.run = AsyncMock(side_effect=asyncio.TimeoutError())
+        mock_agent.run = AsyncMock(side_effect=TimeoutError())
 
-        with patch.object(mock_service, "_get_or_create_agent", return_value=mock_agent):
-            with pytest.raises(LLMTimeoutError):
-                await mock_service.parse_or_raise("test", SimpleOutput)
+        with (
+            patch.object(mock_service, "_get_or_create_agent", return_value=mock_agent),
+            pytest.raises(LLMTimeoutError),
+        ):
+            await mock_service.parse_or_raise("test", SimpleOutput)
 
     @pytest.mark.asyncio
     async def test_validation_error_raises(self, mock_service: LLMParseService) -> None:
         mock_agent = AsyncMock()
-        mock_agent.run = AsyncMock(
-            side_effect=UnexpectedModelBehavior("bad")
-        )
+        mock_agent.run = AsyncMock(side_effect=UnexpectedModelBehavior("bad"))
 
-        with patch.object(mock_service, "_get_or_create_agent", return_value=mock_agent):
-            with pytest.raises(OutputValidationError):
-                await mock_service.parse_or_raise("test", SimpleOutput)
+        with (
+            patch.object(mock_service, "_get_or_create_agent", return_value=mock_agent),
+            pytest.raises(OutputValidationError),
+        ):
+            await mock_service.parse_or_raise("test", SimpleOutput)
 
     @pytest.mark.asyncio
     async def test_rate_limit_raises(self, mock_service: LLMParseService) -> None:
@@ -278,40 +273,45 @@ class TestParseOrRaise:
         mock_agent = AsyncMock()
         mock_agent.run = AsyncMock(side_effect=exc)
 
-        with patch.object(mock_service, "_get_or_create_agent", return_value=mock_agent):
-            with pytest.raises(RateLimitError):
-                await mock_service.parse_or_raise("test", SimpleOutput)
+        with patch.object(mock_service, "_get_or_create_agent", return_value=mock_agent), pytest.raises(RateLimitError):
+            await mock_service.parse_or_raise("test", SimpleOutput)
 
     @pytest.mark.asyncio
     async def test_connection_error_raises(self, mock_service: LLMParseService) -> None:
         mock_agent = AsyncMock()
         mock_agent.run = AsyncMock(side_effect=ConnectionError("refused"))
 
-        with patch.object(mock_service, "_get_or_create_agent", return_value=mock_agent):
-            with pytest.raises(LLMConnectionError):
-                await mock_service.parse_or_raise("test", SimpleOutput)
+        with (
+            patch.object(mock_service, "_get_or_create_agent", return_value=mock_agent),
+            pytest.raises(LLMConnectionError),
+        ):
+            await mock_service.parse_or_raise("test", SimpleOutput)
 
     @pytest.mark.asyncio
     async def test_unknown_error_raises_base(self, mock_service: LLMParseService) -> None:
         mock_agent = AsyncMock()
         mock_agent.run = AsyncMock(side_effect=RuntimeError("unexpected"))
 
-        with patch.object(mock_service, "_get_or_create_agent", return_value=mock_agent):
-            with pytest.raises(ParseServiceError):
-                await mock_service.parse_or_raise("test", SimpleOutput)
+        with (
+            patch.object(mock_service, "_get_or_create_agent", return_value=mock_agent),
+            pytest.raises(ParseServiceError),
+        ):
+            await mock_service.parse_or_raise("test", SimpleOutput)
 
     @pytest.mark.asyncio
     async def test_success_but_none_output_raises(self, mock_service: LLMParseService) -> None:
         """parse 返回 SUCCESS 但 output=None 时应抛 ParseServiceError。"""
         from llm_parse.models import ParseResult
 
-        with patch.object(
-            mock_service,
-            "parse",
-            return_value=ParseResult(status=ParseStatus.SUCCESS, output=None, prompt="test"),
+        with (
+            patch.object(
+                mock_service,
+                "parse",
+                return_value=ParseResult(status=ParseStatus.SUCCESS, output=None, prompt="test"),
+            ),
+            pytest.raises(ParseServiceError, match="输出为空"),
         ):
-            with pytest.raises(ParseServiceError, match="输出为空"):
-                await mock_service.parse_or_raise("test", SimpleOutput)
+            await mock_service.parse_or_raise("test", SimpleOutput)
 
 
 class TestAgentCache:
@@ -339,7 +339,7 @@ class TestAgentCache:
             MockAgent.side_effect = [MagicMock(), MagicMock()]
             agent1 = mock_service._get_or_create_agent(SimpleOutput, "prompt")
             agent2 = mock_service._get_or_create_agent(AnotherOutput, "prompt")
-            assert agent1 is not agent2
+            assert id(agent1) != id(agent2)
             assert MockAgent.call_count == 2
 
     def test_lru_eviction(self, mock_service: LLMParseService) -> None:
@@ -384,19 +384,16 @@ class TestAgentCache:
 
 
 class TestInternalCreation:
-    def test_create_rate_limit_client(
-        self, service_config: ServiceConfig, llm_config: LLMConfig
-    ) -> None:
+    def test_create_rate_limit_client(self, service_config: ServiceConfig, llm_config: LLMConfig) -> None:
         """_create_rate_limit_client 应返回 AsyncClient。"""
         with patch.object(LLMParseService, "_create_model") as mock_model:
             mock_model.return_value = MagicMock()
             svc = LLMParseService(llm_config=llm_config, service_config=service_config)
         from httpx import AsyncClient
+
         assert isinstance(svc._http_client, AsyncClient)
 
-    def test_create_model(
-        self, service_config: ServiceConfig, llm_config: LLMConfig
-    ) -> None:
+    def test_create_model(self, service_config: ServiceConfig, llm_config: LLMConfig) -> None:
         """_create_model 应返回 ConcurrencyLimitedModel。"""
         from httpx import AsyncClient as RealAsyncClient
         from pydantic_ai import ConcurrencyLimitedModel
@@ -412,21 +409,19 @@ class TestServiceLifecycle:
     @pytest.mark.asyncio
     async def test_close(self, mock_service: LLMParseService) -> None:
         await mock_service.close()
-        mock_service._http_client.aclose.assert_awaited_once()
+        cast(AsyncMock, mock_service._http_client).aclose.assert_awaited_once()
 
     @pytest.mark.asyncio
-    async def test_context_manager(
-        self, service_config: ServiceConfig, llm_config: LLMConfig
-    ) -> None:
-        with patch.object(LLMParseService, "_create_rate_limit_client") as mock_client, \
-             patch.object(LLMParseService, "_create_model") as mock_model:
+    async def test_context_manager(self, service_config: ServiceConfig, llm_config: LLMConfig) -> None:
+        with (
+            patch.object(LLMParseService, "_create_rate_limit_client") as mock_client,
+            patch.object(LLMParseService, "_create_model") as mock_model,
+        ):
             mock_http = AsyncMock()
             mock_client.return_value = mock_http
             mock_model.return_value = MagicMock()
 
-            async with LLMParseService(
-                llm_config=llm_config, service_config=service_config
-            ) as svc:
+            async with LLMParseService(llm_config=llm_config, service_config=service_config) as svc:
                 assert svc is not None
 
             mock_http.aclose.assert_awaited_once()

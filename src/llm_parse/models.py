@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Generic, TypeVar
 
 from pydantic import BaseModel
@@ -11,7 +11,7 @@ from pydantic import BaseModel
 T = TypeVar("T", bound=BaseModel)
 
 
-class ParseStatus(str, Enum):
+class ParseStatus(StrEnum):
     """解析结果状态枚举。"""
 
     SUCCESS = "success"
@@ -43,9 +43,7 @@ class ParseResult(Generic[T]):
     def unwrap(self) -> T:
         """获取输出值，失败时抛出 ValueError。"""
         if self.output is None:
-            raise ValueError(
-                f"解析失败 [{self.status.value}]: {self.error_message}"
-            )
+            raise ValueError(f"解析失败 [{self.status.value}]: {self.error_message}")
         return self.output
 
 

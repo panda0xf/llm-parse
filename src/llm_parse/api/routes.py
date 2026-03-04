@@ -32,7 +32,7 @@ _MAX_PROPERTIES = 50
 _FIELD_NAME_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 
 
-def _schema_to_model(schema: dict[str, Any]) -> type:
+def _schema_to_model(schema: dict[str, Any]) -> Any:
     """将简化版 JSON Schema 转换为动态 Pydantic Model。
 
     支持 properties 中的基础类型（string/integer/number/boolean）
@@ -63,9 +63,10 @@ def _schema_to_model(schema: dict[str, Any]) -> type:
         prop_type = prop.get("type", "string")
         if prop_type == "array":
             item_type = prop.get("items", {}).get("type", "string")
-            python_type = list[_PYTHON_TYPE_MAP.get(item_type, str)]  # type: ignore[index]
+            ele_type: Any = _PYTHON_TYPE_MAP.get(item_type, str)
+            python_type: Any = list[ele_type]
         else:
-            python_type = _PYTHON_TYPE_MAP.get(prop_type, Any)  # type: ignore[assignment]
+            python_type = _PYTHON_TYPE_MAP.get(prop_type, Any)
         default = prop.get("default", ...)
         field_definitions[name] = (python_type, default)
 
@@ -84,7 +85,7 @@ async def parse(
 ) -> ParseResponseSchema:
     """单条结构化解析。"""
     output_model = _schema_to_model(body.output_schema)
-    result = await service.parse(
+    result: Any = await service.parse(
         prompt=body.prompt,
         output_type=output_model,
         system_prompt=body.system_prompt,
@@ -104,7 +105,7 @@ async def parse_batch(
 ) -> BatchResponseSchema:
     """批量并发解析。"""
     output_model = _schema_to_model(body.output_schema)
-    requests = [
+    requests: list[ParseRequest[Any]] = [
         ParseRequest(
             prompt=item.prompt,
             output_type=output_model,
