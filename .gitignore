@@ -23,7 +23,6 @@ env/
 *.swo
 
 # uv
-uv.lock
 
 # Testing
 .pytest_cache/
@@ -36,3 +35,5 @@ htmlcov/
 
 # OS
 .DS_Store
+
+coverage.xml

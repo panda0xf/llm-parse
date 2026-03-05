@@ -162,7 +162,7 @@ async def demo_batch_parse(service: LLMParseService) -> None:
 
     batch = await service.parse_batch(requests)
 
-    print(f"\n批量结果统计:")
+    print("\n批量结果统计:")
     print(f"   总数: {batch.total}")
     print(f"   成功: {batch.succeeded}")
     print(f"   失败: {batch.failed}")

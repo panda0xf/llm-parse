@@ -30,7 +30,6 @@ from tenacity import (
 
 from llm_parse.config import LLMConfig, ServiceConfig, get_config, get_service_config
 from llm_parse.exceptions import (
-    ConcurrencyExhaustedError,
     LLMConnectionError,
     LLMTimeoutError,
     OutputValidationError,
@@ -67,9 +66,7 @@ class LLMParseService:
         self._semaphore = asyncio.Semaphore(self._svc_config.service_semaphore_limit)
         self._http_client = self._create_rate_limit_client()
         self._model = self._create_model()
-        self._agent_cache: OrderedDict[
-            tuple[type[BaseModel], str], Agent[None, Any]
-        ] = OrderedDict()
+        self._agent_cache: OrderedDict[tuple[type[BaseModel], str], Agent[None, Any]] = OrderedDict()
 
         logger.info(
             "LLMParseService 已初始化 | model=%s | agent_concurrency=%d | "
@@ -111,7 +108,7 @@ class LLMParseService:
                 elapsed_seconds=elapsed,
             )
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             elapsed = time.monotonic() - start
             msg = f"请求超时 ({self._svc_config.request_timeout}s)"
             logger.warning("解析超时 | output_type=%s | %s", output_type.__name__, msg)
@@ -204,8 +201,7 @@ class LLMParseService:
         )
 
         logger.info(
-            "批量解析完成 | total=%d | succeeded=%d | failed=%d | "
-            "success_rate=%.1f%% | elapsed=%.2fs",
+            "批量解析完成 | total=%d | succeeded=%d | failed=%d | success_rate=%.1f%% | elapsed=%.2fs",
             batch_result.total,
             batch_result.succeeded,
             batch_result.failed,
