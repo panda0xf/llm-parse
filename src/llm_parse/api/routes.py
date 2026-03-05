@@ -106,8 +106,8 @@ def _resolve_type(
                 detail=f"字段 {field_name!r} 的 enum 不能为空列表",
             )
         if len(values) == 1:
-            return Literal[values[0]]  # type: ignore[valid-type]
-        return Literal[tuple(values)]  # type: ignore[valid-type]
+            return Literal[values[0]]
+        return Literal[tuple(values)]
 
     for key in ("oneOf", "anyOf"):
         if key in prop:
@@ -119,11 +119,7 @@ def _resolve_type(
                 )
             sub_types: list[Any] = []
             for i, sub_schema in enumerate(sub_schemas):
-                sub_name = (
-                    sub_schema["$ref"].rsplit("/", 1)[-1]
-                    if "$ref" in sub_schema
-                    else f"{field_name}_option{i}"
-                )
+                sub_name = sub_schema["$ref"].rsplit("/", 1)[-1] if "$ref" in sub_schema else f"{field_name}_option{i}"
                 sub_types.append(
                     _resolve_type(sub_schema, root_schema, sub_name, depth + 1),
                 )
@@ -136,19 +132,17 @@ def _resolve_type(
     if prop_type == "object":
         if "properties" in prop:
             return _build_object_model(
-                prop, root_schema, _to_model_name(field_name), depth + 1,
+                prop,
+                root_schema,
+                _to_model_name(field_name),
+                depth + 1,
             )
         return dict[str, Any]
 
     if prop_type == "array":
         items_schema = prop.get("items", {})
-        if items_schema:
-            item_type = _resolve_type(
-                items_schema, root_schema, f"{field_name}_item", depth + 1,
-            )
-        else:
-            item_type: Any = str  # type: ignore[no-redef]
-        return list[item_type]
+        inner: Any = _resolve_type(items_schema, root_schema, f"{field_name}_item", depth + 1) if items_schema else str
+        return list[inner]
 
     return _PYTHON_TYPE_MAP.get(prop_type, Any)
 
