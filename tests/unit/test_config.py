@@ -96,6 +96,7 @@ class TestServiceConfig:
 class TestFactoryFunctions:
     def test_get_config(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("OPENAI_API_KEY", "factory-key")
+        get_config.cache_clear()
         cfg = get_config()
         assert isinstance(cfg, LLMConfig)
         assert cfg.openai_api_key == "factory-key"
